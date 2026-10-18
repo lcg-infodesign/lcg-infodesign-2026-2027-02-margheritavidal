@@ -1,18 +1,141 @@
+let table; // Oggetto p5.Table contenente il dataset
+const itemSize = 65; // Dimensione del fungo
+const padding = 50; // Spazio tra le celle della griglia
+const outerPadding = 40; // Margine dai bordi della finestra
+const topOffset = 240; // Spazio verticale in alto per l'intestazione
+
 function preload() {
-  // put preload code here
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  console.log('p5.js version:', p5.VERSION);
-  // put setup code here
-  const message =
-    "This is a template repository\nfor the course Laboratorio di Computergrafica\nCommunication Design, Politecnico di Milano";
-  textAlign(CENTER, CENTER);
-  textSize(16);
-  text(message, width / 2, height / 2);
+  createCanvas(windowWidth, windowHeight); 
+  console.log('p5.js version:', p5.VERSION); 
+  angleMode(DEGREES); 
+
+  if (!table) { // Dataset simulato
+    table = new p5.Table(); // Crea una nuova tabella 
+    table.addColumn("sizeVal"); // Colonna per la dimensione del fungo
+    table.addColumn("tiltVal"); // Colonna per l'inclinazione del fusto
+    table.addColumn("colorVal"); // Colonna per il colore del cappello
+    table.addColumn("widthRatio"); // Colonna per la larghezza del cappello
+
+    for (let i = 0; i < 204; i++) { // Genera numero di funghi
+      let r = table.addRow(); // Aggiunge una nuova riga alla tabella
+      r.setNum("sizeVal", random(25, 65)); // Assegna una taglia casuale tra 25 e 65 px
+      r.setNum("tiltVal", random(-18, 18)); // Assegna un'inclinazione casuale tra -18° e +18°
+      r.setNum("colorVal", random(0, 100)); // Assegna un valore colore casuale tra 0 e 100
+      r.setNum("widthRatio", random(0.8, 1.4)); // Assegna un rapporto di larghezza tra 0.8 e 1.4
+    }
+  }
+
+  let cols = floor((width - 2 * outerPadding) / (itemSize + padding)); // Calcola il numero di colonne per riga
+  let rows = ceil(table.getRowCount() / cols); // Calcola il numero totale di righe necessarie
+  let totalHeight = topOffset + rows * (itemSize + padding) + outerPadding; // Calcola l'altezza complessiva 
+  if (totalHeight > height) { // Se l'altezza necessaria supera lo schermo
+    resizeCanvas(windowWidth, totalHeight); // Allunga il canvas per consentire lo scroll
+  }
+
+  noLoop(); // Disattiva il loop continuo
+}
+
+function drawMushroomGlyph(mSize, mColor, capRatio) {
+  push(); // Isola le trasformazioni e gli stili del glifo
+  rectMode(CENTER); // Imposta l'ancoraggio dei rettangoli sul loro centro
+  noStroke(); // Rimuove il contorno dalle forme geometriche
+
+  let stemW = mSize * 0.22; // Larghezza del gambo proporzionale alla dimensione
+  let stemH = mSize * 0.6; // Altezza del gambo proporzionale alla dimensione
+  let capW = mSize * capRatio; // Larghezza del cappello modulata dal dato
+  let capH = mSize * 0.45; // Altezza del cappello proporzionale alla dimensione
+
+  fill(235, 228, 210); // Colore del gambo
+  rect(0, stemH * 0.2, stemW, stemH, stemW * 0.3); // Gambo con spigoli arrotondati
+
+  fill(215, 206, 186); // Colore per l'anello
+  rect(0, stemH * 0.05, stemW * 1.3, mSize * 0.06, 2); 
+
+  fill(60, 45, 35, 45); // Colore per l'ombra
+  arc(0, 0, capW * 0.9, capH * 0.35, 0, 180); 
+
+  fill(mColor); // Applica la tinta parametrizzata dai dati
+  arc(0, 0, capW, capH * 2, 180, 360, CHORD); 
+
+  fill(255, 255, 255, 230); // Bianco per i pallini
+  let dot = mSize * 0.08; // Diametro dei pallini
+  circle(0, -capH * 0.55, dot * 1.1); // Puntino centrale 
+  circle(-capW * 0.23, -capH * 0.32, dot * 0.85); // Puntino intermedio sx
+  circle(capW * 0.23, -capH * 0.32, dot * 0.85); // Puntino intermedio dx
+  circle(-capW * 0.35, -capH * 0.12, dot * 0.6); // Puntino inferiore sx
+  circle(capW * 0.35, -capH * 0.12, dot * 0.6); // Puntino inferiore dx
+
+  pop(); 
+}
+
+function drawGrid() {
+  let cols = floor((width - 2 * outerPadding) / (itemSize + padding)); 
+  let colCount = 0; 
+  let rowCount = 0; 
+
+  let cLow = color(235, 175, 40); // Colore giallo ocra per valori bassi
+  let cMid = color(190, 55, 45); // Colore terracotta per valori intermedi
+  let cHigh = color(110, 45, 80); // Colore violaceo per valori alti
+
+  for (let i = 0; i < table.getRowCount(); i++) { 
+    let row = table.getRow(i).obj; 
+
+    let s = Number(row["sizeVal"]); // Converte in numero la dimensione
+    let angle = Number(row["tiltVal"]); // Converte in numero l'inclinazione
+    let cNorm = map(Number(row["colorVal"]), 0, 100, 0, 1); // Normalizza il valore colore da 0 a 1
+    let ratio = Number(row["widthRatio"]); // Converte in numero il rapporto larghezza
+
+    let capCol; // Variabile per il colore finale mescolato
+    if (cNorm < 0.5) { // Se il valore è nella prima metà
+      capCol = lerpColor(cLow, cMid, cNorm * 2); // Sfuma tra giallo ocra e terracotta
+    } else { // Se il valore è nella seconda metà
+      capCol = lerpColor(cMid, cHigh, (cNorm - 0.5) * 2); // Sfuma tra terracotta e violaceo
+    }
+
+    let x = outerPadding + colCount * (itemSize + padding) + itemSize / 2; 
+    let y = topOffset + rowCount * (itemSize + padding) + itemSize / 2; 
+
+    push(); 
+    translate(x, y); 
+    rotate(angle); 
+    drawMushroomGlyph(s, capCol, ratio); 
+    pop(); 
+
+    colCount++; // Passa alla colonna successiva
+    if (colCount >= cols) { 
+      colCount = 0; 
+      rowCount++; // Passa alla riga successiva verso il basso
+    }
+  }
+}
+
+function drawHeader() {
+  push(); // Isola lo stile del testo
+  fill(235, 228, 210); // Colore marrone scuro del testo
+  textAlign(LEFT, BASELINE); // Allinea il testo a sinistra
+  textStyle(NORMAL); // Imposta lo stile del font a normale
+  textSize(15); // Dimensione del corpo del testo in pixel
+  textLeading(25); // Interlinea del blocco di testo
+  const info = // Stringa contenente la legenda dei parametri
+    "Parametri di variazione del glifo:\n" +
+    "• Dimensione del fungo (sizeVal)\n" +
+    "• Inclinazione del gambo (tiltVal)\n" +
+    "• Colore del cappello (colorVal)\n" +
+    "• Larghezza del cappello (widthRatio)";
+  text(info, outerPadding, 90); // Mette il testo alle coordinate indicate
+  pop(); 
 }
 
 function draw() {
-  // put drawing code here
+  background(156, 175, 136); // Sfondo beige 
+  drawHeader(); // Disegna l'intestazione in alto
+  drawGrid(); // Disegna tutti i glifi distribuiti nella griglia
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight); // Ridimensiona il canvas al cambio dimensione finestra
+  redraw(); // Riesegue una volta il disegno per ricalcolare la griglia
 }
