@@ -2,15 +2,14 @@ let table; // Oggetto p5.Table contenente il dataset
 const itemSize = 65; // Dimensione del fungo
 const padding = 50; // Spazio tra le celle della griglia
 const outerPadding = 40; // Margine dai bordi della finestra
-const topOffset = 240; // Spazio verticale in alto per l'intestazione
+const topOffset = 40; // Spazio verticale in alto prima della griglia
 
 function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight); 
-  console.log('p5.js version:', p5.VERSION); 
   angleMode(DEGREES); 
+  console.log('p5.js version:', p5.VERSION); 
 
   if (!table) { // Dataset simulato
     table = new p5.Table(); // Crea una nuova tabella 
@@ -24,16 +23,16 @@ function setup() {
       r.setNum("sizeVal", random(25, 65)); // Assegna una taglia casuale tra 25 e 65 px
       r.setNum("tiltVal", random(-18, 18)); // Assegna un'inclinazione casuale tra -18° e +18°
       r.setNum("colorVal", random(0, 100)); // Assegna un valore colore casuale tra 0 e 100
-      r.setNum("widthRatio", random(0.8, 1.4)); // Assegna un rapporto di larghezza tra 0.8 e 1.4
+      r.setNum("widthRatio", random(0.6, 1.6)); // Gamma ampliata per variare maggiormente la forma
     }
   }
 
-  let cols = floor((width - 2 * outerPadding) / (itemSize + padding)); // Calcola il numero di colonne per riga
+  let cols = floor((windowWidth - 2 * outerPadding) / (itemSize + padding)); // Calcola il numero di colonne per riga
   let rows = ceil(table.getRowCount() / cols); // Calcola il numero totale di righe necessarie
   let totalHeight = topOffset + rows * (itemSize + padding) + outerPadding; // Calcola l'altezza complessiva 
-  if (totalHeight > height) { // Se l'altezza necessaria supera lo schermo
-    resizeCanvas(windowWidth, totalHeight); // Allunga il canvas per consentire lo scroll
-  }
+
+  // Crea il canvas direttamente con l'altezza totale per abilitare lo scroll nativo della finestra
+  createCanvas(windowWidth, max(windowHeight, totalHeight)); 
 
   noLoop(); // Disattiva il loop continuo
 }
@@ -46,7 +45,8 @@ function drawMushroomGlyph(mSize, mColor, capRatio) {
   let stemW = mSize * 0.22; // Larghezza del gambo proporzionale alla dimensione
   let stemH = mSize * 0.6; // Altezza del gambo proporzionale alla dimensione
   let capW = mSize * capRatio; // Larghezza del cappello modulata dal dato
-  let capH = mSize * 0.45; // Altezza del cappello proporzionale alla dimensione
+  // L'altezza varia in modo inverso/dinamico rispetto alla larghezza per creare forme a cupola, a campana o piatte
+  let capH = mSize * (0.55 / capRatio); 
 
   fill(235, 228, 210); // Colore del gambo
   rect(0, stemH * 0.2, stemW, stemH, stemW * 0.3); // Gambo con spigoli arrotondati
@@ -112,30 +112,15 @@ function drawGrid() {
   }
 }
 
-function drawHeader() {
-  push(); // Isola lo stile del testo
-  fill(235, 228, 210); // Colore marrone scuro del testo
-  textAlign(LEFT, BASELINE); // Allinea il testo a sinistra
-  textStyle(NORMAL); // Imposta lo stile del font a normale
-  textSize(15); // Dimensione del corpo del testo in pixel
-  textLeading(25); // Interlinea del blocco di testo
-  const info = // Stringa contenente la legenda dei parametri
-    "Parametri di variazione del glifo:\n" +
-    "• Dimensione del fungo (sizeVal)\n" +
-    "• Inclinazione del gambo (tiltVal)\n" +
-    "• Colore del cappello (colorVal)\n" +
-    "• Larghezza del cappello (widthRatio)";
-  text(info, outerPadding, 90); // Mette il testo alle coordinate indicate
-  pop(); 
-}
-
 function draw() {
-  background(156, 175, 136); // Sfondo beige 
-  drawHeader(); // Disegna l'intestazione in alto
+  background(156, 175, 136); // Sfondo
   drawGrid(); // Disegna tutti i glifi distribuiti nella griglia
 }
 
 function windowResized() {
-  resizeCanvas(windowWidth, windowHeight); // Ridimensiona il canvas al cambio dimensione finestra
+  let cols = floor((windowWidth - 2 * outerPadding) / (itemSize + padding));
+  let rows = ceil(table.getRowCount() / cols);
+  let totalHeight = topOffset + rows * (itemSize + padding) + outerPadding;
+  resizeCanvas(windowWidth, max(windowHeight, totalHeight));
   redraw(); // Riesegue una volta il disegno per ricalcolare la griglia
 }
