@@ -34,7 +34,7 @@ function setup() {
   // Crea il canvas direttamente con l'altezza totale per abilitare lo scroll nativo della finestra
   createCanvas(windowWidth, max(windowHeight, totalHeight)); 
 
-  noLoop(); // Disattiva il loop continuo
+  // noLoop() è stato rimosso per consentire il loop di animazione continuo
 }
 
 function drawMushroomGlyph(mSize, mColor, capRatio) {
@@ -83,10 +83,19 @@ function drawGrid() {
   for (let i = 0; i < table.getRowCount(); i++) { 
     let row = table.getRow(i).obj; 
 
-    let s = Number(row["sizeVal"]); // Converte in numero la dimensione
-    let angle = Number(row["tiltVal"]); // Converte in numero l'inclinazione
+    let baseSize = Number(row["sizeVal"]); // Converte in numero la dimensione
+    let baseAngle = Number(row["tiltVal"]); // Converte in numero l'inclinazione
     let cNorm = map(Number(row["colorVal"]), 0, 100, 0, 1); // Normalizza il valore colore da 0 a 1
     let ratio = Number(row["widthRatio"]); // Converte in numero il rapporto larghezza
+
+    // ANIMAZIONE 
+    // Oscillazione: usa baseAngle e l'indice `i` per sfasare il movimento
+    let sway = sin(frameCount * 1.8 + i * 20) * 7; 
+    let dynamicAngle = baseAngle + sway;
+
+    // pulsazione vitale
+    let pulse = sin(frameCount * 2.5 + i * 15) * 2; 
+    let dynamicSize = baseSize + pulse;
 
     let capCol; // Variabile per il colore finale mescolato
     if (cNorm < 0.5) { // Se il valore è nella prima metà
@@ -100,8 +109,8 @@ function drawGrid() {
 
     push(); 
     translate(x, y); 
-    rotate(angle); 
-    drawMushroomGlyph(s, capCol, ratio); 
+    rotate(dynamicAngle); 
+    drawMushroomGlyph(dynamicSize, capCol, ratio); 
     pop(); 
 
     colCount++; // Passa alla colonna successiva
@@ -114,7 +123,7 @@ function drawGrid() {
 
 function draw() {
   background(156, 175, 136); // Sfondo
-  drawGrid(); // Disegna tutti i glifi distribuiti nella griglia
+  drawGrid(); // Ridisegna la griglia frame per frame
 }
 
 function windowResized() {
@@ -122,5 +131,4 @@ function windowResized() {
   let rows = ceil(table.getRowCount() / cols);
   let totalHeight = topOffset + rows * (itemSize + padding) + outerPadding;
   resizeCanvas(windowWidth, max(windowHeight, totalHeight));
-  redraw(); // Riesegue una volta il disegno per ricalcolare la griglia
 }
